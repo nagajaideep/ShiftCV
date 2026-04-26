@@ -23,7 +23,7 @@ async def compile_latex(latex_string: str) -> bytes:
             ).startswith("application/pdf"):
                 return resp.content
             else:
-                errors.append(f"latexonline.cc: status={resp.status_code}")
+                errors.append(f"latexonline.cc: status={resp.status_code}, msg={resp.text[:200]}")
     except Exception as e:
         errors.append(f"latexonline.cc: {e}")
 
