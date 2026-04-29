@@ -15,6 +15,7 @@ function App() {
   const handleTransform = async (resumeFile, templateFile) => {
     setLoading(true);
     setError('');
+    console.log('Triggering deployment');
     try {
       const result = await transformResume(resumeFile, templateFile);
       setLatex(result);
