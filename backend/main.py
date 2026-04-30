@@ -16,10 +16,14 @@ load_dotenv()
 
 app = FastAPI(title="ShiftCV API")
 
-# CORS — allow Vite dev server
+# CORS — allow production frontend and Vite dev server
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "https://my-app-frontend.onrender.com"
+    ],
     allow_methods=["*"],
     allow_headers=["*"],
 )
