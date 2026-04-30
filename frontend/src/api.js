@@ -1,6 +1,9 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+let API_BASE_URL = import.meta.env.VITE_API_URL || '';
+if (API_BASE_URL.endsWith('/')) {
+  API_BASE_URL = API_BASE_URL.slice(0, -1);
+}
 
 export const transformResume = async (resumeFile, templateFile) => {
   const formData = new FormData();
