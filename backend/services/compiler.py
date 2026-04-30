@@ -12,24 +12,26 @@ async def compile_latex(latex_string: str) -> bytes:
     errors = []
 
     # Method 1: LaTeX.Online via POST
+    # Note: Using POST avoids URL length limits for long LaTeX code
     try:
-        async with httpx.AsyncClient(timeout=120.0, follow_redirects=True) as client:
-            encoded = urllib.parse.quote(latex_string, safe="")
-            url = f"https://latexonline.cc/compile?text={encoded}&command=pdflatex"
-            resp = await client.get(url)
+        async with httpx.AsyncClient(timeout=150.0, follow_redirects=True) as client:
+            resp = await client.post(
+                "https://latexonline.cc/compile",
+                data={"text": latex_string, "command": "pdflatex"}
+            )
 
             if resp.status_code == 200 and resp.headers.get(
                 "content-type", ""
             ).startswith("application/pdf"):
                 return resp.content
             else:
-                errors.append(f"latexonline.cc: status={resp.status_code}, msg={resp.text[:200]}")
+                errors.append(f"latexonline.cc: status={resp.status_code}")
     except Exception as e:
         errors.append(f"latexonline.cc: {e}")
 
-    # Method 2: ytotech LaTeX API
+    # Method 2: ytotech LaTeX API (Fallback)
     try:
-        async with httpx.AsyncClient(timeout=120.0, follow_redirects=True) as client:
+        async with httpx.AsyncClient(timeout=150.0, follow_redirects=True) as client:
             payload = {
                 "compiler": "pdflatex",
                 "resources": [{"main": True, "content": latex_string}],
@@ -43,9 +45,9 @@ async def compile_latex(latex_string: str) -> bytes:
                 return resp.content
             else:
                 errors.append(
-                    f"ytotech: status={resp.status_code}, body={resp.text[:200]}"
+                    f"ytotech: status={resp.status_code}"
                 )
     except Exception as e:
         errors.append(f"ytotech: {e}")
 
-    raise Exception(f"All LaTeX compilers failed: {'; '.join(errors)}")
+    raise Exception(f"All LaTeX compilers failed: {'; '.join(errors)}. The online compilers might be down or your LaTeX code has errors.")

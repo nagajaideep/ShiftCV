@@ -22,3 +22,12 @@ export const compileLatex = async (latex) => {
   });
   return URL.createObjectURL(response.data);
 };
+
+export const checkBackendStatus = async () => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/api/health`);
+    return response.data.status === 'ok';
+  } catch (err) {
+    return false;
+  }
+};

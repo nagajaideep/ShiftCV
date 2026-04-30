@@ -34,6 +34,11 @@ async def root():
     return {"message": "Welcome to ShiftCV API"}
 
 
+@app.get("/api/health")
+async def health():
+    return {"status": "ok"}
+
+
 # ── POST /api/transform ──────────────────────────────────────────────
 @app.post("/api/transform")
 async def transform(resume: UploadFile = File(...), template: UploadFile = File(...)):
