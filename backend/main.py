@@ -7,6 +7,7 @@ import os
 from dotenv import load_dotenv
 from fastapi import FastAPI, UploadFile, File, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from services.parser import extract_text
 from services.gemini import transform_resume
 from services.compiler import compile_latex
@@ -109,8 +110,7 @@ async def compile_tex(body: dict):
     except Exception as e:
         print(f"ERROR in /api/compile: {e}")
         traceback.print_exc()
-        return Response(
-            content=f'{{"detail": "Compilation error: {str(e)}"}}',
+        return JSONResponse(
+            content={"detail": f"Compilation error: {str(e)}"},
             status_code=500,
-            media_type="application/json",
         )

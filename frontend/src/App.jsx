@@ -74,7 +74,7 @@ function App() {
         </div>
       </nav>
 
-      <main className="pb-20">
+      <main className={view === 'editor' ? 'app-main app-main-editor' : 'app-main pb-20'}>
         {error && (
           <div className="max-w-2xl mx-auto mt-6 p-4 bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg text-sm">
             {error}

@@ -1,9 +1,13 @@
 """
-LaTeX compilation proxy — sends LaTeX source to LaTeX.Online and returns PDF bytes.
+LaTeX compilation proxy - sends LaTeX source to online compilers and returns PDF bytes.
 """
 
-import urllib.parse
 import httpx
+
+
+def _is_pdf_response(resp: httpx.Response) -> bool:
+    content_type = resp.headers.get("content-type", "").lower()
+    return resp.content.startswith(b"%PDF-") or content_type.startswith("application/pdf")
 
 
 async def compile_latex(latex_string: str) -> bytes:
@@ -11,25 +15,23 @@ async def compile_latex(latex_string: str) -> bytes:
 
     errors = []
 
-    # Method 1: LaTeX.Online via POST
-    # Note: Using POST avoids URL length limits for long LaTeX code
+    # LaTeX.Online expects the source in the text query parameter.
     try:
         async with httpx.AsyncClient(timeout=150.0, follow_redirects=True) as client:
-            resp = await client.post(
+            resp = await client.get(
                 "https://latexonline.cc/compile",
-                data={"text": latex_string, "command": "pdflatex"}
+                params={"text": latex_string, "command": "pdflatex", "force": "true"},
             )
 
-            if resp.status_code == 200 and resp.headers.get(
-                "content-type", ""
-            ).startswith("application/pdf"):
+            if 200 <= resp.status_code < 300 and _is_pdf_response(resp):
                 return resp.content
-            else:
-                errors.append(f"latexonline.cc: status={resp.status_code}")
+
+            error_text = resp.text[:800].replace("\n", " ")
+            errors.append(f"latexonline.cc: status={resp.status_code}, body={error_text}")
     except Exception as e:
         errors.append(f"latexonline.cc: {e}")
 
-    # Method 2: ytotech LaTeX API (Fallback)
+    # Fallback service.
     try:
         async with httpx.AsyncClient(timeout=150.0, follow_redirects=True) as client:
             payload = {
@@ -41,13 +43,15 @@ async def compile_latex(latex_string: str) -> bytes:
                 json=payload,
             )
 
-            if resp.status_code == 200 and len(resp.content) > 100:
+            if 200 <= resp.status_code < 300 and _is_pdf_response(resp):
                 return resp.content
-            else:
-                errors.append(
-                    f"ytotech: status={resp.status_code}"
-                )
+
+            error_text = resp.text[:800].replace("\n", " ")
+            errors.append(f"ytotech: status={resp.status_code}, body={error_text}")
     except Exception as e:
         errors.append(f"ytotech: {e}")
 
-    raise Exception(f"All LaTeX compilers failed: {'; '.join(errors)}. The online compilers might be down or your LaTeX code has errors.")
+    raise Exception(
+        "All LaTeX compilers failed: "
+        f"{'; '.join(errors)}. The online compilers might be down or your LaTeX code has errors."
+    )

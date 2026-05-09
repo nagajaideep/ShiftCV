@@ -17,10 +17,26 @@ export const transformResume = async (resumeFile, templateFile) => {
 };
 
 export const compileLatex = async (latex) => {
-  const response = await axios.post(`${API_BASE_URL}/api/compile`, { latex }, {
-    responseType: 'blob',
-  });
-  return URL.createObjectURL(response.data);
+  try {
+    const response = await axios.post(`${API_BASE_URL}/api/compile`, { latex }, {
+      responseType: 'blob',
+    });
+    return URL.createObjectURL(response.data);
+  } catch (err) {
+    const blob = err.response?.data;
+    if (blob instanceof Blob) {
+      const text = await blob.text();
+      let detail = text;
+      try {
+        const parsed = JSON.parse(text);
+        detail = parsed.detail || text;
+      } catch {
+        detail = text;
+      }
+      throw new Error(detail || 'LaTeX compilation failed.');
+    }
+    throw new Error(err.response?.data?.detail || err.message || 'LaTeX compilation failed.');
+  }
 };
 
 export const checkBackendStatus = async () => {

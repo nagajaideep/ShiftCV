@@ -27,7 +27,10 @@ async def transform_resume(
 Your job: Fill the LATEX TEMPLATE with the data from the RESUME CONTENT.
 
 CRITICAL RULES:
-- YOU MUST NOT CHANGE any lengths, variables, or specific formatting defined in the template. The output should be EXACTLY like the template but with the user's data.
+- YOU MUST NOT CHANGE any commands, macros, packages, lengths, variables, spacing, widths, line heights, margins, font sizes, or formatting definitions from the template.
+- Treat commands and definitions near the top of the template (for example custom section commands, line-height settings, width values, geometry, spacing, and header/footer definitions) as locked. Copy them exactly.
+- Only replace placeholder/resume content and place the extracted information into the matching sections neatly.
+- Do not rename commands, remove commands, simplify commands, or rewrite the template structure unless the document cannot compile without that exact minimal fix.
 - If the template uses a custom class like \\documentclass{{resume}}, convert it ONLY to \\documentclass{{article}} if it's necessary for compilation, but INLINE any required styling so the layout remains EXACT.
 - Place the extracted resume text into the corresponding sections of the template.
 - ESCAPE special LaTeX characters in the data (e.g., replace '&' with '\\&', '%' with '\\%', '$' with '\\$', '_' with '\\_').
@@ -49,7 +52,8 @@ Output the filled LaTeX document now:"""
 Your job: Create a complete, compilable LaTeX document that matches the EXACT visual structure and formatting of the template.
 
 CRITICAL RULES:
-- DO NOT change any margins, font sizes, or spacing variables. It should be an exact match.
+- DO NOT change any commands, margins, font sizes, spacing variables, line heights, widths, section definitions, or top-level formatting values from the template structure.
+- Treat any commands or layout definitions at the top as locked; keep them as-is and only place the resume information into the appropriate locations neatly.
 - Use standard packages: geometry, enumitem, titlesec, hyperref, fontawesome5.
 - ESCAPE special LaTeX characters in the data (e.g., replace '&' with '\\&', '%' with '\\%', '$' with '\\$', '_' with '\\_').
 - The document MUST start with \\documentclass and end with \\end{{document}}.

@@ -1,55 +1,90 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Download, Play, Save, ChevronLeft, Loader2 } from 'lucide-react';
+import { Download, ChevronLeft } from 'lucide-react';
 import LatexEditor from './LatexEditor';
 import PdfPreview from './PdfPreview';
 import { compileLatex } from '../api';
+
+const autoCompileRequests = new Map();
+
+const getAutoCompileRequest = (latex) => {
+  if (!autoCompileRequests.has(latex)) {
+    const request = compileLatex(latex).catch((err) => {
+      autoCompileRequests.delete(latex);
+      throw err;
+    });
+    autoCompileRequests.set(latex, request);
+  }
+
+  return autoCompileRequests.get(latex);
+};
 
 const EditorView = ({ initialLatex }) => {
   const [latex, setLatex] = useState(initialLatex);
   const [pdfUrl, setPdfUrl] = useState(null);
   const [compiling, setCompiling] = useState(false);
+  const [compileError, setCompileError] = useState('');
 
-  const handleCompile = async () => {
+  const runCompile = useCallback(async (compileRequest) => {
     setCompiling(true);
+    setCompileError('');
     try {
-      const url = await compileLatex(latex);
+      const url = await compileRequest();
       setPdfUrl(url);
     } catch (err) {
       console.error("Compilation failed", err);
+      setCompileError(err.message || 'Compilation failed. Please check your LaTeX and try again.');
     } finally {
       setCompiling(false);
     }
-  };
+  }, []);
+
+  const handleCompile = useCallback(() => {
+    return runCompile(() => compileLatex(latex));
+  }, [latex, runCompile]);
 
   useEffect(() => {
-    if (initialLatex) handleCompile();
-  }, []);
+    if (!initialLatex) return undefined;
+
+    let cancelled = false;
+    setCompiling(true);
+    setCompileError('');
+
+    getAutoCompileRequest(initialLatex)
+      .then((url) => {
+        if (!cancelled) setPdfUrl(url);
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          console.error("Initial compilation failed", err);
+          setCompileError(err.message || 'Compilation failed. Please check your LaTeX and try again.');
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setCompiling(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [initialLatex]);
 
   return (
     <motion.div 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="h-[calc(100vh-80px)] flex flex-col"
+      className="editor-shell"
     >
       {/* Toolbar */}
-      <div className="p-3 border-b border-white/5 bg-white/5 flex justify-between items-center px-6">
+      <div className="editor-toolbar">
         <div className="flex items-center gap-4">
-          <button className="p-2 hover:bg-white/5 rounded-lg text-gray-400">
+          <button className="icon-button" aria-label="Back">
             <ChevronLeft size={20} />
           </button>
           <span className="text-sm font-medium text-gray-300">resume_edited.tex</span>
         </div>
         
         <div className="flex items-center gap-3">
-          <button 
-            onClick={handleCompile} 
-            disabled={compiling}
-            className="btn-secondary flex items-center gap-2 py-2 px-4 text-sm"
-          >
-            {compiling ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />}
-            Compile
-          </button>
           <button className="btn-primary flex items-center gap-2 py-2 px-4 text-sm">
             <Download size={16} />
             Download PDF
@@ -58,12 +93,17 @@ const EditorView = ({ initialLatex }) => {
       </div>
 
       {/* Editor & Preview Split */}
-      <div className="flex-1 flex overflow-hidden">
-        <div className="w-1/2 border-r border-white/10 overflow-auto bg-[#1e1e1e]">
+      <div className="editor-split">
+        <div className="latex-pane">
           <LatexEditor value={latex} onChange={setLatex} />
         </div>
-        <div className="w-1/2 bg-gray-900">
-          <PdfPreview url={pdfUrl} loading={compiling} />
+        <div className="pdf-pane">
+          <PdfPreview
+            url={pdfUrl}
+            loading={compiling}
+            error={compileError}
+            onCompile={handleCompile}
+          />
         </div>
       </div>
     </motion.div>
